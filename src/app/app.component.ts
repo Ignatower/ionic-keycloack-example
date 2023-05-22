@@ -25,6 +25,8 @@ export class AppComponent implements OnInit{
   constructor(private oauthService: OAuthService, private zone: NgZone, private platform: Platform,
               private activatedRoute: ActivatedRoute, private router: Router) {
     if (this.platform.is('ios') && this.platform.is('capacitor')){
+      console.log("constructor Igna")
+
       this.configureIOS();
     }else if(this.platform.is('desktop')){
       this.configureWeb();
@@ -37,8 +39,11 @@ export class AppComponent implements OnInit{
     /**
      * Load discovery document when the app inits
      */
+    console.log("ngOnInit Igna v2")
+
     this.oauthService.loadDiscoveryDocument()
       .then(loadDiscoveryDocumentResult => {
+        console.log("loadDiscoveryDocument no error Igna")
         console.log("loadDiscoveryDocument", loadDiscoveryDocumentResult);
 
         /**
@@ -60,6 +65,9 @@ export class AppComponent implements OnInit{
 
       })
       .catch(error => {
+
+        console.log()
+        console.log("loadDiscoveryDocument Error Igna")
         console.error("loadDiscoveryDocument", error);
       });
 
@@ -68,6 +76,7 @@ export class AppComponent implements OnInit{
      * It would be better to filter out the events which are unrelated to access token - trying to keep this example small.
      */
     this.oauthService.events.subscribe(eventResult => {
+      console.log("this.oauthService.events.subscrib Igna v2")
       console.debug("LibEvent", eventResult);
       this.hasValidAccessToken = this.oauthService.hasValidAccessToken();
     })
@@ -163,6 +172,7 @@ export class AppComponent implements OnInit{
    * @private
    */
   private configureIOS(): void {
+    console.log("configureIOS Igna")
     console.log("Using iOS configuration")
     let authConfig: AuthConfig = {
       issuer: "http://localhost:8080/realms/master",
@@ -180,6 +190,7 @@ export class AppComponent implements OnInit{
     this.oauthService.setupAutomaticSilentRefresh();
 
     App.addListener('appUrlOpen', (event: URLOpenListenerEvent) => {
+      console.log("App.addListener appUrlOpen Error Igna")
       let url = new URL(event.url);
       if(url.host != "login"){
         // Only interested in redirects to myschema://login
@@ -187,7 +198,7 @@ export class AppComponent implements OnInit{
       }
 
       this.zone.run(() => {
-
+        console.log("this.zone.run Igna")
         // Building a query param object for Angular Router
         const queryParams: Params = {};
         for (const [key, value] of url.searchParams.entries()) {
@@ -203,6 +214,7 @@ export class AppComponent implements OnInit{
             queryParamsHandling: 'merge', // remove to replace all query params by provided
           })
           .then(navigateResult => {
+            console.log("navigateResult Igna")
             // After updating the route, trigger login in oauthlib and
             this.oauthService.tryLogin().then(tryLoginResult => {
               console.log("tryLogin", tryLoginResult);
@@ -212,7 +224,9 @@ export class AppComponent implements OnInit{
               }
             })
           })
-          .catch(error => console.error(error));
+          .catch(error => {
+            console.log("appUrlOpen this.router.navigate Error Igna")
+            console.error(error)});
 
       });
     });
