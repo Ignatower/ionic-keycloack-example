@@ -25,11 +25,12 @@ export class AppComponent implements OnInit{
   constructor(private oauthService: OAuthService, private zone: NgZone, private platform: Platform,
               private activatedRoute: ActivatedRoute, private router: Router) {
     if (this.platform.is('ios') && this.platform.is('capacitor')){
-      console.log("constructor Igna")
 
       this.configureIOS();
     }else if(this.platform.is('desktop')){
       this.configureWeb();
+    }else if (this.platform.is('android') && this.platform.is('capacitor')) {
+      this.configureAndroid();
     }else{
       alert("This platform is not supported.")
     }
@@ -39,11 +40,9 @@ export class AppComponent implements OnInit{
     /**
      * Load discovery document when the app inits
      */
-    console.log("ngOnInit Igna v2")
-
+     console.log("ngOnInit")
     this.oauthService.loadDiscoveryDocument()
       .then(loadDiscoveryDocumentResult => {
-        console.log("loadDiscoveryDocument no error Igna")
         console.log("loadDiscoveryDocument", loadDiscoveryDocumentResult);
 
         /**
@@ -66,8 +65,7 @@ export class AppComponent implements OnInit{
       })
       .catch(error => {
 
-        console.log()
-        console.log("loadDiscoveryDocument Error Igna")
+        console.log("this.oauthService.loadDiscoveryDocument() error")
         console.error("loadDiscoveryDocument", error);
       });
 
@@ -76,7 +74,6 @@ export class AppComponent implements OnInit{
      * It would be better to filter out the events which are unrelated to access token - trying to keep this example small.
      */
     this.oauthService.events.subscribe(eventResult => {
-      console.log("this.oauthService.events.subscrib Igna v2")
       console.debug("LibEvent", eventResult);
       this.hasValidAccessToken = this.oauthService.hasValidAccessToken();
     })
@@ -86,6 +83,8 @@ export class AppComponent implements OnInit{
    * Calls the library loadDiscoveryDocumentAndLogin() method.
    */
   public login(): void {
+    alert("Click login")
+
     this.oauthService.loadDiscoveryDocumentAndLogin()
       .then(loadDiscoveryDocumentAndLoginResult => {
         console.log("loadDiscoveryDocumentAndLogin", loadDiscoveryDocumentAndLoginResult);
@@ -172,7 +171,6 @@ export class AppComponent implements OnInit{
    * @private
    */
   private configureIOS(): void {
-    console.log("configureIOS Igna")
     console.log("Using iOS configuration")
     let authConfig: AuthConfig = {
       issuer: "http://localhost:8080/realms/master",
@@ -190,7 +188,6 @@ export class AppComponent implements OnInit{
     this.oauthService.setupAutomaticSilentRefresh();
 
     App.addListener('appUrlOpen', (event: URLOpenListenerEvent) => {
-      console.log("App.addListener appUrlOpen Error Igna")
       let url = new URL(event.url);
       if(url.host != "login"){
         // Only interested in redirects to myschema://login
@@ -198,7 +195,6 @@ export class AppComponent implements OnInit{
       }
 
       this.zone.run(() => {
-        console.log("this.zone.run Igna")
         // Building a query param object for Angular Router
         const queryParams: Params = {};
         for (const [key, value] of url.searchParams.entries()) {
@@ -214,7 +210,6 @@ export class AppComponent implements OnInit{
             queryParamsHandling: 'merge', // remove to replace all query params by provided
           })
           .then(navigateResult => {
-            console.log("navigateResult Igna")
             // After updating the route, trigger login in oauthlib and
             this.oauthService.tryLogin().then(tryLoginResult => {
               console.log("tryLogin", tryLoginResult);
@@ -225,7 +220,67 @@ export class AppComponent implements OnInit{
             })
           })
           .catch(error => {
-            console.log("appUrlOpen this.router.navigate Error Igna")
+            console.error(error)});
+
+      });
+    });
+  }
+
+    /**
+   * Configures the app for android deployment
+   * @private
+   */
+  private configureAndroid(): void {
+    console.log("Using Android configuration")
+    let authConfig: AuthConfig = {
+      issuer: "http://192.168.1.10:8080/realms/master",
+      redirectUri: "http://192.168.1.10:8100", // needs to be an app link
+      clientId: 'example-ionic-app',
+      responseType: 'code',
+      scope: 'openid profile email offline_access',
+      // Revocation Endpoint must be set manually when using Keycloak
+      // See: https://github.com/manfredsteyer/angular-oauth2-oidc/issues/794
+      revocationEndpoint: "http://192.168.1.10:8080/realms/master/protocol/openid-connect/revoke",
+      showDebugInformation: true,
+      requireHttps: false
+    }
+    this.oauthService.configure(authConfig);
+    this.oauthService.setupAutomaticSilentRefresh();
+    console.log("After oauthService")
+    App.addListener('appUrlOpen', (event: URLOpenListenerEvent) => {
+      let url = new URL(event.url);
+      console.log("addListener event.url " + event.url)
+      if(url.host != "login"){
+        // Only interested in redirects to myschema://login
+        return;
+      }
+
+      this.zone.run(() => {
+        // Building a query param object for Angular Router
+        const queryParams: Params = {};
+        for (const [key, value] of url.searchParams.entries()) {
+          queryParams[key] = value;
+        }
+
+        // Add query params to current route
+        this.router.navigate(
+          [],
+          {
+            relativeTo: this.activatedRoute,
+            queryParams: queryParams,
+            queryParamsHandling: 'merge', // remove to replace all query params by provided
+          })
+          .then(navigateResult => {
+            // After updating the route, trigger login in oauthlib and
+            this.oauthService.tryLogin().then(tryLoginResult => {
+              console.log("tryLogin", tryLoginResult);
+              if (this.hasValidAccessToken){
+                this.loadUserProfile();
+                this.realmRoles = this.getRealmRoles();
+              }
+            })
+          })
+          .catch(error => {
             console.error(error)});
 
       });
