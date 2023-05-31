@@ -6,14 +6,18 @@ Showing how to connect your Ionic app with a Keycloak instance.
 # Machete Nacho
 
 * build android app for the first time:
+```
 ionic capacitor add android
 ionic capacitor build android
 ionic capacitor sync android
 ionic capacitor open
+```
 
 * build android app for next times:
+```
 ionic capacitor sync android
 ionic capacitor open
+```
 
 * how to open chrome devtools? https://stackoverflow.com/questions/38744809/ionic-2-how-can-i-get-console-messages-from-android-device 
 run on chrome: chrome://inspect/#devices and then choose "inspect".
